@@ -7,40 +7,27 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Hotel, Plus, Edit, Trash2, Star, MapPin, Wifi, Car, Coffee, Dumbbell } from "lucide-react";
+import { useVendorProperties, useCreateRoomType, useUpdateRoomType, useDeleteRoomType } from "@/hooks/useVendorData";
 
 const HotelManagement = () => {
-  const [hotels, setHotels] = useState([
-    {
-      id: 1,
-      name: "Ocean View Resort",
-      location: "Miami Beach, FL",
-      rating: 4.8,
-      rooms: 120,
-      description: "Luxury beachfront resort with stunning ocean views",
-      amenities: ["WiFi", "Pool", "Spa", "Gym", "Restaurant"],
-      roomTypes: [
-        { id: 1, name: "Standard Room", price: 120, capacity: 2, amenities: ["WiFi", "AC", "TV"] },
-        { id: 2, name: "Ocean View Suite", price: 250, capacity: 4, amenities: ["WiFi", "AC", "TV", "Balcony", "Mini Bar"] },
-        { id: 3, name: "Presidential Suite", price: 500, capacity: 6, amenities: ["WiFi", "AC", "TV", "Balcony", "Mini Bar", "Jacuzzi"] }
-      ]
-    },
-    {
-      id: 2,
-      name: "Mountain Lodge",
-      location: "Aspen, CO",
-      rating: 4.6,
-      rooms: 80,
-      description: "Cozy mountain retreat perfect for winter getaways",
-      amenities: ["WiFi", "Fireplace", "Hot Tub", "Ski Storage"],
-      roomTypes: [
-        { id: 1, name: "Cabin Room", price: 180, capacity: 2, amenities: ["WiFi", "Fireplace", "Heating"] },
-        { id: 2, name: "Family Suite", price: 320, capacity: 6, amenities: ["WiFi", "Fireplace", "Heating", "Kitchen"] }
-      ]
-    }
-  ]);
+  const { data: properties, isLoading } = useVendorProperties();
+  const createRoomTypeMutation = useCreateRoomType();
+  const updateRoomTypeMutation = useUpdateRoomType();
+  const deleteRoomTypeMutation = useDeleteRoomType();
 
-  const [selectedHotel, setSelectedHotel] = useState(null);
+  const [selectedHotel, setSelectedHotel] = useState<any>(null);
   const [isAddingRoom, setIsAddingRoom] = useState(false);
+  const [editingRoom, setEditingRoom] = useState<any>(null);
+  const [roomFormData, setRoomFormData] = useState({
+    name: "",
+    description: "",
+    base_price: "",
+    max_occupancy: "2",
+    total_rooms: "1",
+    amenities: ""
+  });
+
+  const hotels = properties?.filter(p => p.type === 'hotel') || [];
 
   const amenityIcons = {
     WiFi: Wifi,
@@ -51,38 +38,81 @@ const HotelManagement = () => {
     Parking: Car
   };
 
+  const handleAddRoom = async () => {
+    if (!selectedHotel || !roomFormData.name || !roomFormData.base_price) {
+      return;
+    }
+
+    const roomData = {
+      property_id: selectedHotel.id,
+      name: roomFormData.name,
+      description: roomFormData.description,
+      base_price: parseFloat(roomFormData.base_price),
+      max_occupancy: parseInt(roomFormData.max_occupancy),
+      total_rooms: parseInt(roomFormData.total_rooms),
+      amenities: roomFormData.amenities ? roomFormData.amenities.split(',').map(a => a.trim()) : []
+    };
+
+    await createRoomTypeMutation.mutateAsync(roomData);
+    setIsAddingRoom(false);
+    resetForm();
+  };
+
+  const handleEditRoom = async () => {
+    if (!editingRoom || !roomFormData.name || !roomFormData.base_price) {
+      return;
+    }
+
+    const roomData = {
+      id: editingRoom.id,
+      name: roomFormData.name,
+      description: roomFormData.description,
+      base_price: parseFloat(roomFormData.base_price),
+      max_occupancy: parseInt(roomFormData.max_occupancy),
+      total_rooms: parseInt(roomFormData.total_rooms),
+      amenities: roomFormData.amenities ? roomFormData.amenities.split(',').map(a => a.trim()) : []
+    };
+
+    await updateRoomTypeMutation.mutateAsync(roomData);
+    setEditingRoom(null);
+    resetForm();
+  };
+
+  const handleDeleteRoom = async (roomId: string) => {
+    await deleteRoomTypeMutation.mutateAsync(roomId);
+  };
+
+  const resetForm = () => {
+    setRoomFormData({
+      name: "",
+      description: "",
+      base_price: "",
+      max_occupancy: "2",
+      total_rooms: "1",
+      amenities: ""
+    });
+  };
+
+  const openEditDialog = (room: any) => {
+    setEditingRoom(room);
+    setRoomFormData({
+      name: room.name,
+      description: room.description || "",
+      base_price: room.base_price.toString(),
+      max_occupancy: room.max_occupancy.toString(),
+      total_rooms: room.total_rooms.toString(),
+      amenities: room.amenities ? room.amenities.join(', ') : ""
+    });
+  };
+
+  if (isLoading) {
+    return <div>Loading hotels...</div>;
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold">Hotel Management</h2>
-        <Dialog>
-          <DialogTrigger asChild>
-            <Button className="bg-blue-600 hover:bg-blue-700">
-              <Plus className="h-4 w-4 mr-2" />
-              Add Hotel
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>Add New Hotel</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="hotel-name">Hotel Name</Label>
-                <Input id="hotel-name" placeholder="Enter hotel name" />
-              </div>
-              <div>
-                <Label htmlFor="hotel-location">Location</Label>
-                <Input id="hotel-location" placeholder="Enter location" />
-              </div>
-              <div>
-                <Label htmlFor="hotel-description">Description</Label>
-                <Textarea id="hotel-description" placeholder="Enter description" />
-              </div>
-              <Button className="w-full">Add Hotel</Button>
-            </div>
-          </DialogContent>
-        </Dialog>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -110,8 +140,8 @@ const HotelManagement = () => {
               <p className="text-gray-600 text-sm">{hotel.description}</p>
               
               <div className="flex flex-wrap gap-2">
-                {hotel.amenities.map((amenity, index) => {
-                  const IconComponent = amenityIcons[amenity];
+                {hotel.amenities?.map((amenity: string, index: number) => {
+                  const IconComponent = amenityIcons[amenity as keyof typeof amenityIcons];
                   return (
                     <Badge key={index} variant="secondary" className="flex items-center space-x-1">
                       {IconComponent && <IconComponent className="h-3 w-3" />}
@@ -123,7 +153,7 @@ const HotelManagement = () => {
 
               <div className="border-t pt-4">
                 <div className="flex items-center justify-between mb-3">
-                  <h4 className="font-medium">Room Types ({hotel.roomTypes.length})</h4>
+                  <h4 className="font-medium">Room Types ({hotel.room_types?.length || 0})</h4>
                   <Button
                     size="sm"
                     variant="outline"
@@ -138,15 +168,15 @@ const HotelManagement = () => {
                 </div>
                 
                 <div className="space-y-2">
-                  {hotel.roomTypes.map((room) => (
+                  {hotel.room_types?.map((room: any) => (
                     <div key={room.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                       <div>
                         <p className="font-medium text-sm">{room.name}</p>
                         <p className="text-xs text-gray-600">
-                          ${room.price}/night • {room.capacity} guests
+                          ${room.base_price}/night • {room.max_occupancy} guests
                         </p>
                         <div className="flex flex-wrap gap-1 mt-1">
-                          {room.amenities.map((amenity, idx) => (
+                          {room.amenities?.map((amenity: string, idx: number) => (
                             <Badge key={idx} variant="outline" className="text-xs">
                               {amenity}
                             </Badge>
@@ -154,10 +184,18 @@ const HotelManagement = () => {
                         </div>
                       </div>
                       <div className="flex space-x-1">
-                        <Button size="sm" variant="ghost">
+                        <Button 
+                          size="sm" 
+                          variant="ghost"
+                          onClick={() => openEditDialog(room)}
+                        >
                           <Edit className="h-3 w-3" />
                         </Button>
-                        <Button size="sm" variant="ghost">
+                        <Button 
+                          size="sm" 
+                          variant="ghost"
+                          onClick={() => handleDeleteRoom(room.id)}
+                        >
                           <Trash2 className="h-3 w-3" />
                         </Button>
                       </div>
@@ -190,23 +228,147 @@ const HotelManagement = () => {
           <div className="space-y-4">
             <div>
               <Label htmlFor="room-name">Room Name</Label>
-              <Input id="room-name" placeholder="e.g., Deluxe Suite" />
+              <Input 
+                id="room-name" 
+                placeholder="e.g., Deluxe Suite" 
+                value={roomFormData.name}
+                onChange={(e) => setRoomFormData({...roomFormData, name: e.target.value})}
+              />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="room-description">Description</Label>
+              <Textarea 
+                id="room-description" 
+                placeholder="Room description" 
+                value={roomFormData.description}
+                onChange={(e) => setRoomFormData({...roomFormData, description: e.target.value})}
+              />
+            </div>
+            <div className="grid grid-cols-3 gap-4">
               <div>
                 <Label htmlFor="room-price">Price per night</Label>
-                <Input id="room-price" type="number" placeholder="150" />
+                <Input 
+                  id="room-price" 
+                  type="number" 
+                  placeholder="150" 
+                  value={roomFormData.base_price}
+                  onChange={(e) => setRoomFormData({...roomFormData, base_price: e.target.value})}
+                />
               </div>
               <div>
                 <Label htmlFor="room-capacity">Max Guests</Label>
-                <Input id="room-capacity" type="number" placeholder="2" />
+                <Input 
+                  id="room-capacity" 
+                  type="number" 
+                  placeholder="2" 
+                  value={roomFormData.max_occupancy}
+                  onChange={(e) => setRoomFormData({...roomFormData, max_occupancy: e.target.value})}
+                />
+              </div>
+              <div>
+                <Label htmlFor="total-rooms">Total Rooms</Label>
+                <Input 
+                  id="total-rooms" 
+                  type="number" 
+                  placeholder="1" 
+                  value={roomFormData.total_rooms}
+                  onChange={(e) => setRoomFormData({...roomFormData, total_rooms: e.target.value})}
+                />
               </div>
             </div>
             <div>
               <Label htmlFor="room-amenities">Amenities (comma-separated)</Label>
-              <Input id="room-amenities" placeholder="WiFi, AC, TV, Mini Bar" />
+              <Input 
+                id="room-amenities" 
+                placeholder="WiFi, AC, TV, Mini Bar" 
+                value={roomFormData.amenities}
+                onChange={(e) => setRoomFormData({...roomFormData, amenities: e.target.value})}
+              />
             </div>
-            <Button className="w-full">Add Room Type</Button>
+            <Button 
+              className="w-full" 
+              onClick={handleAddRoom}
+              disabled={createRoomTypeMutation.isPending}
+            >
+              {createRoomTypeMutation.isPending ? "Adding..." : "Add Room Type"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Room Type Dialog */}
+      <Dialog open={!!editingRoom} onOpenChange={(open) => !open && setEditingRoom(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Room Type</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="edit-room-name">Room Name</Label>
+              <Input 
+                id="edit-room-name" 
+                placeholder="e.g., Deluxe Suite" 
+                value={roomFormData.name}
+                onChange={(e) => setRoomFormData({...roomFormData, name: e.target.value})}
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit-room-description">Description</Label>
+              <Textarea 
+                id="edit-room-description" 
+                placeholder="Room description" 
+                value={roomFormData.description}
+                onChange={(e) => setRoomFormData({...roomFormData, description: e.target.value})}
+              />
+            </div>
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <Label htmlFor="edit-room-price">Price per night</Label>
+                <Input 
+                  id="edit-room-price" 
+                  type="number" 
+                  placeholder="150" 
+                  value={roomFormData.base_price}
+                  onChange={(e) => setRoomFormData({...roomFormData, base_price: e.target.value})}
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-room-capacity">Max Guests</Label>
+                <Input 
+                  id="edit-room-capacity" 
+                  type="number" 
+                  placeholder="2" 
+                  value={roomFormData.max_occupancy}
+                  onChange={(e) => setRoomFormData({...roomFormData, max_occupancy: e.target.value})}
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-total-rooms">Total Rooms</Label>
+                <Input 
+                  id="edit-total-rooms" 
+                  type="number" 
+                  placeholder="1" 
+                  value={roomFormData.total_rooms}
+                  onChange={(e) => setRoomFormData({...roomFormData, total_rooms: e.target.value})}
+                />
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="edit-room-amenities">Amenities (comma-separated)</Label>
+              <Input 
+                id="edit-room-amenities" 
+                placeholder="WiFi, AC, TV, Mini Bar" 
+                value={roomFormData.amenities}
+                onChange={(e) => setRoomFormData({...roomFormData, amenities: e.target.value})}
+              />
+            </div>
+            <Button 
+              className="w-full" 
+              onClick={handleEditRoom}
+              disabled={updateRoomTypeMutation.isPending}
+            >
+              {updateRoomTypeMutation.isPending ? "Updating..." : "Update Room Type"}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

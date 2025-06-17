@@ -4,16 +4,57 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Hotel, Car, Users, Plus, Eye, Edit, Trash2 } from "lucide-react";
 import HotelManagement from "./HotelManagement";
 import CarRentalManagement from "./CarRentalManagement";
 import TourPackageManagement from "./TourPackageManagement";
+import { useVendorProperties, useCreateProperty } from "@/hooks/useVendorData";
 
 const VendorDashboard = () => {
   const [activeTab, setActiveTab] = useState("overview");
+  const [isAddingProperty, setIsAddingProperty] = useState(false);
+  const [newProperty, setNewProperty] = useState({
+    name: "",
+    type: "",
+    description: "",
+    location: "",
+    address: "",
+    amenities: ""
+  });
+
+  const { data: properties, isLoading } = useVendorProperties();
+  const createPropertyMutation = useCreateProperty();
+
+  const handleAddProperty = async () => {
+    if (!newProperty.name || !newProperty.type || !newProperty.location) {
+      return;
+    }
+
+    const propertyData = {
+      ...newProperty,
+      amenities: newProperty.amenities ? newProperty.amenities.split(',').map(a => a.trim()) : [],
+      vendor_id: '00000000-0000-0000-0000-000000000000' // This will need proper vendor ID
+    };
+
+    await createPropertyMutation.mutateAsync(propertyData);
+    setIsAddingProperty(false);
+    setNewProperty({
+      name: "",
+      type: "",
+      description: "",
+      location: "",
+      address: "",
+      amenities: ""
+    });
+  };
 
   const stats = [
-    { title: "Total Properties", value: "12", icon: Hotel, color: "blue" },
+    { title: "Total Properties", value: properties?.length.toString() || "0", icon: Hotel, color: "blue" },
     { title: "Active Bookings", value: "45", icon: Users, color: "green" },
     { title: "Revenue This Month", value: "$15,240", icon: Car, color: "purple" },
     { title: "Reviews", value: "4.8/5", icon: Users, color: "yellow" },
@@ -32,10 +73,86 @@ const VendorDashboard = () => {
           <h1 className="text-3xl font-bold text-gray-900">Vendor Dashboard</h1>
           <p className="text-gray-600">Manage your properties and bookings</p>
         </div>
-        <Button className="bg-gradient-to-r from-blue-600 to-teal-600 hover:from-blue-700 hover:to-teal-700">
-          <Plus className="h-4 w-4 mr-2" />
-          Add New Property
-        </Button>
+        <Dialog open={isAddingProperty} onOpenChange={setIsAddingProperty}>
+          <DialogTrigger asChild>
+            <Button className="bg-gradient-to-r from-blue-600 to-teal-600 hover:from-blue-700 hover:to-teal-700">
+              <Plus className="h-4 w-4 mr-2" />
+              Add New Property
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Add New Property</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="property-name">Property Name</Label>
+                <Input
+                  id="property-name"
+                  value={newProperty.name}
+                  onChange={(e) => setNewProperty({...newProperty, name: e.target.value})}
+                  placeholder="Enter property name"
+                />
+              </div>
+              <div>
+                <Label htmlFor="property-type">Property Type</Label>
+                <Select value={newProperty.type} onValueChange={(value) => setNewProperty({...newProperty, type: value})}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select property type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="hotel">Hotel</SelectItem>
+                    <SelectItem value="car_rental">Car Rental</SelectItem>
+                    <SelectItem value="tour">Tour</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="property-location">Location</Label>
+                <Input
+                  id="property-location"
+                  value={newProperty.location}
+                  onChange={(e) => setNewProperty({...newProperty, location: e.target.value})}
+                  placeholder="Enter location"
+                />
+              </div>
+              <div>
+                <Label htmlFor="property-address">Address</Label>
+                <Input
+                  id="property-address"
+                  value={newProperty.address}
+                  onChange={(e) => setNewProperty({...newProperty, address: e.target.value})}
+                  placeholder="Enter full address"
+                />
+              </div>
+              <div>
+                <Label htmlFor="property-description">Description</Label>
+                <Textarea
+                  id="property-description"
+                  value={newProperty.description}
+                  onChange={(e) => setNewProperty({...newProperty, description: e.target.value})}
+                  placeholder="Enter property description"
+                />
+              </div>
+              <div>
+                <Label htmlFor="property-amenities">Amenities (comma-separated)</Label>
+                <Input
+                  id="property-amenities"
+                  value={newProperty.amenities}
+                  onChange={(e) => setNewProperty({...newProperty, amenities: e.target.value})}
+                  placeholder="WiFi, Pool, Parking, etc."
+                />
+              </div>
+              <Button 
+                onClick={handleAddProperty} 
+                className="w-full"
+                disabled={createPropertyMutation.isPending}
+              >
+                {createPropertyMutation.isPending ? "Adding..." : "Add Property"}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
