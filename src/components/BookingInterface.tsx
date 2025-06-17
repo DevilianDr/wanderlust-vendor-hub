@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -61,15 +60,18 @@ const BookingInterface = () => {
     
     switch (bookingType) {
       case 'hotel':
-        basePrice = Number(resource.base_price) || 0;
+        // Type assertion for room type
+        basePrice = Number((resource as any).base_price) || 0;
         quantity = rooms;
         break;
       case 'car_rental':
-        basePrice = Number(resource.daily_rate) || 0;
+        // Type assertion for vehicle
+        basePrice = Number((resource as any).daily_rate) || 0;
         quantity = 1;
         break;
       case 'tour':
-        basePrice = Number(resource.price_per_person) || 0;
+        // Type assertion for tour package
+        basePrice = Number((resource as any).price_per_person) || 0;
         quantity = guests;
         break;
     }
@@ -307,11 +309,11 @@ const BookingInterface = () => {
                       {getResourceOptions().map((resource) => (
                         <SelectItem key={resource.id} value={resource.id}>
                           <div className="flex justify-between w-full">
-                            <span>{resource.name || `${resource.make} ${resource.model}`}</span>
+                            <span>{(resource as any).name || `${(resource as any).make} ${(resource as any).model}`}</span>
                             <span className="font-medium">
-                              ${bookingType === 'hotel' ? resource.base_price : 
-                                bookingType === 'car_rental' ? resource.daily_rate : 
-                                resource.price_per_person}
+                              ${bookingType === 'hotel' ? (resource as any).base_price : 
+                                bookingType === 'car_rental' ? (resource as any).daily_rate : 
+                                (resource as any).price_per_person}
                               {bookingType === 'tour' ? '/person' : '/night'}
                             </span>
                           </div>
