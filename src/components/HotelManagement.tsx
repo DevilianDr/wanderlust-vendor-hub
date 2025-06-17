@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -111,12 +110,15 @@ const HotelManagement = () => {
               <p className="text-gray-600 text-sm">{hotel.description}</p>
               
               <div className="flex flex-wrap gap-2">
-                {hotel.amenities.map((amenity, index) => (
-                  <Badge key={index} variant="secondary" className="flex items-center space-x-1">
-                    {amenityIcons[amenity] && <amenityIcons[amenity] className="h-3 w-3" />}
-                    <span>{amenity}</span>
-                  </Badge>
-                ))}
+                {hotel.amenities.map((amenity, index) => {
+                  const IconComponent = amenityIcons[amenity];
+                  return (
+                    <Badge key={index} variant="secondary" className="flex items-center space-x-1">
+                      {IconComponent && <IconComponent className="h-3 w-3" />}
+                      <span>{amenity}</span>
+                    </Badge>
+                  );
+                })}
               </div>
 
               <div className="border-t pt-4">
