@@ -1,202 +1,156 @@
 
-import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Hotel, Car, Users, Star, MapPin, Calendar } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Star, MapPin, Hotel, Car, Users } from "lucide-react";
+import { useProperties } from "@/hooks/useSupabaseData";
 
 const PropertyListings = () => {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedType, setSelectedType] = useState("all");
+  const { data: properties, isLoading, error } = useProperties();
 
-  const properties = [
-    {
-      id: 1,
-      type: "hotel",
-      name: "Ocean View Resort",
-      location: "Miami Beach, FL",
-      rating: 4.8,
-      price: 120,
-      priceUnit: "night",
-      image: "/placeholder.svg",
-      description: "Luxury beachfront resort with stunning ocean views",
-      amenities: ["WiFi", "Pool", "Spa", "Restaurant"]
-    },
-    {
-      id: 2,
-      type: "car",
-      name: "Tesla Model 3",
-      location: "Downtown Miami",
-      rating: 4.9,
-      price: 120,
-      priceUnit: "day",
-      image: "/placeholder.svg",
-      description: "Premium electric vehicle with autopilot features",
-      amenities: ["GPS", "Bluetooth", "AC", "Supercharging"]
-    },
-    {
-      id: 3,
-      type: "tour",
-      name: "Miami Beach Adventure",
-      location: "Miami, FL",
-      rating: 4.7,
-      price: 299,
-      priceUnit: "person",
-      image: "/placeholder.svg",
-      description: "3-day adventure exploring beautiful beaches and nightlife",
-      amenities: ["Guide", "Transport", "Meals", "Activities"]
-    },
-    {
-      id: 4,
-      type: "hotel",
-      name: "Mountain Lodge",
-      location: "Aspen, CO",
-      rating: 4.6,
-      price: 180,
-      priceUnit: "night",
-      image: "/placeholder.svg",
-      description: "Cozy mountain retreat perfect for winter getaways",
-      amenities: ["WiFi", "Fireplace", "Hot Tub", "Ski Storage"]
-    },
-    {
-      id: 5,
-      type: "car",
-      name: "Jeep Wrangler",
-      location: "Denver, CO",
-      rating: 4.5,
-      price: 95,
-      priceUnit: "day",
-      image: "/placeholder.svg",
-      description: "Perfect for mountain adventures and off-road exploration",
-      amenities: ["4WD", "GPS", "Bluetooth", "AC"]
-    }
-  ];
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {[1, 2, 3, 4, 5, 6].map((i) => (
+          <Card key={i} className="animate-pulse">
+            <div className="h-48 bg-gray-200 rounded-t-lg"></div>
+            <CardContent className="p-4">
+              <div className="h-4 bg-gray-200 rounded mb-2"></div>
+              <div className="h-3 bg-gray-200 rounded w-2/3"></div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  }
 
-  const getTypeIcon = (type) => {
+  if (error) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-red-600">Error loading properties: {error.message}</p>
+      </div>
+    );
+  }
+
+  if (!properties || properties.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <Hotel className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+        <h3 className="text-lg font-medium text-gray-900 mb-2">No properties available</h3>
+        <p className="text-gray-600">Check back later for new listings.</p>
+      </div>
+    );
+  }
+
+  const getPropertyIcon = (type: string) => {
     switch (type) {
       case 'hotel': return Hotel;
-      case 'car': return Car;
+      case 'car_rental': return Car;
       case 'tour': return Users;
       default: return Hotel;
     }
   };
 
-  const getTypeColor = (type) => {
+  const getTypeLabel = (type: string) => {
     switch (type) {
-      case 'hotel': return 'blue';
-      case 'car': return 'teal';
-      case 'tour': return 'purple';
-      default: return 'gray';
+      case 'hotel': return 'Hotel';
+      case 'car_rental': return 'Car Rental';
+      case 'tour': return 'Tour Package';
+      default: return type;
     }
   };
 
-  const filteredProperties = properties.filter(property => {
-    const matchesSearch = property.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         property.location.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesType = selectedType === 'all' || property.type === selectedType;
-    return matchesSearch && matchesType;
-  });
-
   return (
     <div className="space-y-6">
-      {/* Search and Filter */}
-      <div className="flex flex-col md:flex-row gap-4">
-        <div className="flex-1">
-          <Input
-            placeholder="Search properties or locations..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full"
-          />
-        </div>
-        <Select value={selectedType} onValueChange={setSelectedType}>
-          <SelectTrigger className="md:w-48">
-            <SelectValue placeholder="Filter by type" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Properties</SelectItem>
-            <SelectItem value="hotel">Hotels</SelectItem>
-            <SelectItem value="car">Car Rentals</SelectItem>
-            <SelectItem value="tour">Tour Packages</SelectItem>
-          </SelectContent>
-        </Select>
+      <div className="text-center">
+        <h2 className="text-3xl font-bold text-gray-900 mb-4">Available Properties</h2>
+        <p className="text-gray-600 max-w-2xl mx-auto">
+          Discover amazing hotels, car rentals, and tour packages from verified vendors
+        </p>
       </div>
 
-      {/* Results */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredProperties.map((property) => {
-          const TypeIcon = getTypeIcon(property.type);
-          const typeColor = getTypeColor(property.type);
+        {properties.map((property) => {
+          const IconComponent = getPropertyIcon(property.type);
+          const primaryImage = property.images?.[0] || '/placeholder.svg';
           
           return (
-            <Card key={property.id} className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-              <div className="relative">
-                <div className="h-48 bg-gradient-to-r from-gray-200 to-gray-300 rounded-t-lg flex items-center justify-center">
-                  <TypeIcon className={`h-16 w-16 text-${typeColor}-400`} />
+            <Card key={property.id} className="group hover:shadow-lg transition-all duration-300 overflow-hidden">
+              <div className="relative h-48 overflow-hidden">
+                <img 
+                  src={primaryImage} 
+                  alt={property.name}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                />
+                <div className="absolute top-4 left-4">
+                  <Badge variant="secondary" className="bg-white/90">
+                    <IconComponent className="h-3 w-3 mr-1" />
+                    {getTypeLabel(property.type)}
+                  </Badge>
                 </div>
-                <Badge 
-                  className={`absolute top-3 left-3 bg-${typeColor}-600 hover:bg-${typeColor}-700`}
-                >
-                  {property.type.charAt(0).toUpperCase() + property.type.slice(1)}
-                </Badge>
-                <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm rounded-full px-2 py-1 flex items-center space-x-1">
-                  <Star className="h-3 w-3 text-yellow-500 fill-current" />
-                  <span className="text-xs font-medium">{property.rating}</span>
-                </div>
-              </div>
-              
-              <CardContent className="p-6 space-y-4">
-                <div>
-                  <h3 className="font-bold text-lg group-hover:text-blue-600 transition-colors">
-                    {property.name}
-                  </h3>
-                  <div className="flex items-center space-x-1 text-gray-600">
-                    <MapPin className="h-4 w-4" />
-                    <span className="text-sm">{property.location}</span>
+                {property.rating > 0 && (
+                  <div className="absolute top-4 right-4 bg-white/90 rounded-full px-2 py-1 flex items-center">
+                    <Star className="h-3 w-3 text-yellow-500 fill-current mr-1" />
+                    <span className="text-xs font-medium">{property.rating}</span>
                   </div>
+                )}
+              </div>
+
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg">{property.name}</CardTitle>
+                <div className="flex items-center text-gray-600">
+                  <MapPin className="h-4 w-4 mr-1" />
+                  <span className="text-sm">{property.location}</span>
                 </div>
-                
+              </CardHeader>
+
+              <CardContent className="space-y-4">
                 <p className="text-gray-600 text-sm line-clamp-2">{property.description}</p>
                 
-                <div className="flex flex-wrap gap-1">
-                  {property.amenities.slice(0, 3).map((amenity, index) => (
-                    <Badge key={index} variant="secondary" className="text-xs">
-                      {amenity}
-                    </Badge>
-                  ))}
-                  {property.amenities.length > 3 && (
-                    <Badge variant="secondary" className="text-xs">
-                      +{property.amenities.length - 3} more
-                    </Badge>
-                  )}
-                </div>
-                
-                <div className="flex items-center justify-between pt-2">
-                  <div>
-                    <span className={`text-2xl font-bold text-${typeColor}-600`}>
-                      ${property.price}
-                    </span>
-                    <span className="text-gray-500 text-sm">/{property.priceUnit}</span>
+                {property.amenities && property.amenities.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {property.amenities.slice(0, 3).map((amenity, index) => (
+                      <Badge key={index} variant="outline" className="text-xs">
+                        {amenity}
+                      </Badge>
+                    ))}
+                    {property.amenities.length > 3 && (
+                      <Badge variant="outline" className="text-xs">
+                        +{property.amenities.length - 3} more
+                      </Badge>
+                    )}
                   </div>
-                  <Button className={`bg-${typeColor}-600 hover:bg-${typeColor}-700`}>
-                    <Calendar className="h-4 w-4 mr-2" />
-                    Book Now
+                )}
+
+                <div className="flex items-center justify-between pt-2">
+                  <div className="text-sm text-gray-600">
+                    {property.type === 'hotel' && property.room_types?.length > 0 && (
+                      <span>{property.room_types.length} room type{property.room_types.length > 1 ? 's' : ''}</span>
+                    )}
+                    {property.type === 'car_rental' && property.vehicles?.length > 0 && (
+                      <span>{property.vehicles.length} vehicle{property.vehicles.length > 1 ? 's' : ''}</span>
+                    )}
+                    {property.type === 'tour' && property.tour_packages?.length > 0 && (
+                      <span>{property.tour_packages.length} package{property.tour_packages.length > 1 ? 's' : ''}</span>
+                    )}
+                  </div>
+                  <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
+                    View Details
                   </Button>
                 </div>
+
+                {property.deals && property.deals.length > 0 && (
+                  <div className="bg-green-50 p-2 rounded-lg">
+                    <Badge variant="secondary" className="bg-green-600 text-white text-xs">
+                      Special Deal Available
+                    </Badge>
+                  </div>
+                )}
               </CardContent>
             </Card>
           );
         })}
       </div>
-
-      {filteredProperties.length === 0 && (
-        <div className="text-center py-12">
-          <p className="text-gray-500 text-lg">No properties found matching your criteria.</p>
-          <p className="text-gray-400 text-sm mt-2">Try adjusting your search terms or filters.</p>
-        </div>
-      )}
     </div>
   );
 };
