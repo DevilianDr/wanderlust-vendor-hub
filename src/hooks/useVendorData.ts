@@ -2,12 +2,17 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 
 // Vendor Properties
 export const useVendorProperties = () => {
+  const { user } = useAuth();
+  
   return useQuery({
-    queryKey: ['vendor-properties'],
+    queryKey: ['vendor-properties', user?.id],
     queryFn: async () => {
+      if (!user) throw new Error('User must be authenticated');
+      
       const { data, error } = await supabase
         .from('properties')
         .select(`
@@ -21,18 +26,47 @@ export const useVendorProperties = () => {
       if (error) throw error;
       return data;
     },
+    enabled: !!user,
   });
 };
 
 // Add Property
 export const useCreateProperty = () => {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   
   return useMutation({
     mutationFn: async (propertyData: any) => {
+      if (!user) throw new Error('User must be authenticated');
+      
+      // First check if user has a vendor profile, create one if not
+      let { data: vendor } = await supabase
+        .from('vendors')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
+        
+      if (!vendor) {
+        const { data: newVendor, error: vendorError } = await supabase
+          .from('vendors')
+          .insert({
+            user_id: user.id,
+            business_name: propertyData.name + ' Business',
+            email: user.email || '',
+          })
+          .select()
+          .single();
+          
+        if (vendorError) throw vendorError;
+        vendor = newVendor;
+      }
+      
       const { data, error } = await supabase
         .from('properties')
-        .insert(propertyData)
+        .insert({
+          ...propertyData,
+          vendor_id: vendor.id
+        })
         .select()
         .single();
       
@@ -46,10 +80,10 @@ export const useCreateProperty = () => {
         description: "Property has been created successfully.",
       });
     },
-    onError: () => {
+    onError: (error: any) => {
       toast({
         title: "Error",
-        description: "Failed to create property. Please try again.",
+        description: error.message || "Failed to create property. Please try again.",
         variant: "destructive",
       });
     },

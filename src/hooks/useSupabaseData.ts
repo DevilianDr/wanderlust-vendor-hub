@@ -1,6 +1,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 
 export const useProperties = () => {
   return useQuery({
@@ -25,12 +26,19 @@ export const useProperties = () => {
 
 export const useCreateBooking = () => {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   
   return useMutation({
     mutationFn: async (bookingData: any) => {
+      if (!user) throw new Error('User must be authenticated to create bookings');
+      
       const { data, error } = await supabase
         .from('bookings')
-        .insert(bookingData)
+        .insert({
+          ...bookingData,
+          user_id: user.id, // Ensure user_id is set for RLS
+          customer_id: user.id // Keep existing field for compatibility
+        })
         .select()
         .single();
       
