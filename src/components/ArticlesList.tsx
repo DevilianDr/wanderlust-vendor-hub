@@ -1,12 +1,9 @@
 
 import { useArticles } from "@/hooks/useArticles";
 import ArticleCard from "@/components/ArticleCard";
-import { useState } from "react";
-import ArticleDetail from "@/components/ArticleDetail";
 
 const ArticlesList = () => {
   const { data: articles, isLoading, error } = useArticles();
-  const [selectedArticleId, setSelectedArticleId] = useState<string | null>(null);
 
   if (isLoading) {
     return (
@@ -32,30 +29,19 @@ const ArticlesList = () => {
     );
   }
 
-  if (selectedArticleId) {
-    return (
-      <ArticleDetail 
-        articleId={selectedArticleId}
-        onBack={() => setSelectedArticleId(null)}
-      />
-    );
-  }
-
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <h2 className="text-3xl font-bold text-gray-900 mb-2">Travel Articles</h2>
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">Travel Articles</h1>
         <p className="text-gray-600">Discover amazing places and find properties to stay</p>
       </div>
       
       {articles && articles.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" itemScope itemType="https://schema.org/ItemList">
           {articles.map((article) => (
-            <ArticleCard
-              key={article.id}
-              article={article}
-              onClick={() => setSelectedArticleId(article.id)}
-            />
+            <div key={article.id} itemProp="itemListElement" itemScope itemType="https://schema.org/ListItem">
+              <ArticleCard article={article} />
+            </div>
           ))}
         </div>
       ) : (
